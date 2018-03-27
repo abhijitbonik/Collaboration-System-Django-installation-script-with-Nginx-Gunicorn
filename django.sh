@@ -179,3 +179,8 @@ sudo -S <<< $1 service supervisor restart
 
 
 sudo -S <<< $1 cp CollaborationSystem/temp/patch_for_reversion_compare.py collab/lib/python3.5/site-packages/reversion_compare/views.py
+
+python3 CollaborationSystem/manage.py migrate
+python3 CollaborationSystem/manage.py loaddata workflow
+python3 CollaborationSystem/manage.py loaddata roles
+python3 CollaborationSystem/manage.py loaddata faq
