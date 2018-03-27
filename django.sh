@@ -29,7 +29,7 @@ sudo -S <<< $1 apt-get --yes install supervisor
 sudo -S <<< $1 systemctl enable supervisor
 sudo -S <<< $1 systemctl start supervisor
 
-sudo -S <<< $1 apt-get --yes python3-pip
+sudo -S <<< $1 apt-get --yes install python3-pip
 sudo -S <<< $1 pip3 install virtualenv
 
 git clone https://github.com/fresearchgroup/Collaboration-System.git
@@ -42,13 +42,33 @@ pip3 install -r CollaborationSystem/requirements.txt
 pip3 install gunicorn
 pip3 install psycopg2
 
+sudo -S <<< $1 touch CollaborationSystem/.env
+sudo bash -c <<< $1 'cat > CollaborationSystem/.env <<\EOL
+SECRET_KEY=myf0)*es+lr_3l0i5$4^)^fb&4rcf(m28zven+oxkd6!(6gr*6
+DEBUG=True
+DB_NAME=django
+DB_USER=root
+DB_PASSWORD=root
+DB_HOST=localhost
+DB_PORT=3306
+ALLOWED_HOSTS= localhost, 10.129.132.103
+GOOGLE_RECAPTCHA_SECRET_KEY=6Lfsk0MUAAAAAFdhF-dAY-iTEpWaaCFWAc1tkqjK
+EMAIL_HOST=localhost
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+EMAIL_PORT=25
+EMAIL_USE_TLS=False
+DEFAULT_FROM_EMAIL=collaboratingcommunity@cse.iitb.ac.in
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=735919351499-ajre9us5dccvms36ilhrqb88ajv4ahl0.apps.googleusercontent.com
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=I1v-sHbsogVc0jAw9M9Xy1eM
+EOL'
 
 sudo -S <<< $1 sed -i '170 a  STATIC_ROOT = "/home/edx/static"' CollaborationSystem/CollaborationSystem/settings.py
 python3 CollaborationSystem/manage.py collectstatic
 
 touch gunicorn_start.bash
 
-cat > gunicorn_start.bash <<\EOL
+sudo bash -c <<< $1 'cat > gunicorn_start.bash <<\EOL
 
  #!/bin/bash
 
@@ -69,7 +89,7 @@ source /home/edx/collab/bin/activate
 export DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE
 export PYTHONPATH=$DJANGODIR:$PYTHONPATH
 
-# Create the run directory if it doesn't exist
+# Create the run directory if it doesnt exist
 
 RUNDIR=$(dirname $SOCKFILE)
 test -d $RUNDIR || mkdir -p $RUNDIR
@@ -84,14 +104,14 @@ exec gunicorn ${DJANGO_WSGI_MODULE}:application \
   --bind=unix:$SOCKFILE \
   --log-level=debug \
   --log-file=-
-EOL
+EOL'
 
 sudo -S <<< $1 chmod u+x gunicorn_start.bash
 mkdir run logs
 touch logs/gunicorn.log
 sudo -S <<< $1 touch /etc/supervisor/conf.d/edx.conf
 
-sudo -S <<< $1 cat > /etc/supervisor/conf.d/edx.conf <<\EOL
+sudo bash -c <<< $1 'cat > /etc/supervisor/conf.d/edx.conf <<\EOL
 [program:edx]
 command = /home/edx/gunicorn_start.bash
 user=root
@@ -100,12 +120,12 @@ autorestart=true
 redirect_stderr=true
 stdout_logfile=/home/edx/logs/gunicorn.log
 environment=LANG=en_US.UTF-8,LC_ALL=en_US.UTF-8
-EOL
+EOL'
 
 sudo -S <<< $1 systemctl restart supervisor
 sudo -S <<< $1 systemctl enable supervisor
 
-sudo -S <<< $1 cat >> /etc/systemd/system/gunicorn.service <<\EOL
+sudo bash -c <<< $1 'cat >> /etc/systemd/system/gunicorn.service <<\EOL
 [Unit]
 Description=gunicorn daemon
 After=network.target
@@ -118,13 +138,13 @@ ExecStart=/home/edx/collab/bin/gunicorn --access-logfile - --workers 3 --bind un
 
 [Install]
 WantedBy=multi-user.target
-EOL
+EOL'
 
 sudo -S <<< $1 systemctl start gunicorn
 sudo -S <<< $1 systemctl enable gunicorn
 
 sudo -S <<< $1 touch /etc/nginx/sites-available/edx.conf
-sudo -S <<< $1 cat > /etc/nginx/sites-available/edx.conf <<\EOL
+sudo bash -c <<< $1 'cat > /etc/nginx/sites-available/edx.conf <<\EOL
 
 server {
     listen 80;
@@ -148,7 +168,7 @@ server {
         proxy_pass http://unix:/home/edx/run/gunicorn.sock;
     }
 }
-EOL
+EOL'
 
 sudo -S <<< $1 ln -s /etc/nginx/sites-available/edx.conf /etc/nginx/sites-enabled/edx.conf
 sudo ufw allow 'Nginx Full'
@@ -156,25 +176,6 @@ sudo -S <<< $1 systemctl restart nginx
 sudo -S <<< $1 supervisorctl restart edx
 sudo -S <<< $1 service gunicorn restart
 sudo -S <<< $1 service supervisor restart
-sudo -S <<< $1 touch CollaborationSystem/.env
-sudo -S <<< $1 cat > CollaborationSystem/.env <<\EOL
-SECRET_KEY=myf0)*es+lr_3l0i5$4^)^fb&4rcf(m28zven+oxkd6!(6gr*6
-DEBUG=True
-DB_NAME=django
-DB_USER=root
-DB_PASSWORD=root
-DB_HOST=localhost
-DB_PORT=3306
-ALLOWED_HOSTS= localhost, 10.129.132.103
-GOOGLE_RECAPTCHA_SECRET_KEY=6Lfsk0MUAAAAAFdhF-dAY-iTEpWaaCFWAc1tkqjK
-EMAIL_HOST=localhost
-EMAIL_HOST_USER=
-EMAIL_HOST_PASSWORD=
-EMAIL_PORT=25
-EMAIL_USE_TLS=False
-DEFAULT_FROM_EMAIL=collaboratingcommunity@cse.iitb.ac.in
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=735919351499-ajre9us5dccvms36ilhrqb88ajv4ahl0.apps.googleusercontent.com
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=I1v-sHbsogVc0jAw9M9Xy1eM
-EOL
+
 
 sudo -S <<< $1 cp CollaborationSystem/temp/patch_for_reversion_compare.py collab/lib/python3.5/site-packages/reversion_compare/views.py
